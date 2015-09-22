@@ -1,22 +1,36 @@
-var emptygif = require('emptygif');
-var express = require('express');
-var app = express();
-var server = require('http').createServer(app);
-var io = require('socket.io')(server);
+var http = require('http');
+var username = 'joshtimonen23';
 
-app.get('/tpx.gif', function(req, res, next) {
-  io.emit('visit', {
-    ip: req.ip,
-    ua: req.headers['user-agent']
-  });
+//print message function
+function printMessage(username, badgeCount, points){
+  var message = username + " has " + badgeCount + ' badges and ' + points + ' in JavaScript.';
+  console.log(message);
+}
 
-  emptygif.sendEmptyGif(req, res, {
-    'Content-Type': 'image/gif',
-    'Content-Length': emptygif.emptyGifBufferLength,
-    'Cache-Control': 'public, max-age=0' // or specify expiry to make sure it will call everytime
-  });
-});
+//print error function
+function printError(error){
+  console.error(error.message, 'ahhh!!');
+}
 
-app.use(express.static(__dirname + '/public'));
+//GET request
+var request = http.get('http://teamtreehouse.com/' + username + '.json', function(response){
+  console.log(response.statusCode); // status code 200 if successful
+  var body = '';
+  response.on('data', function(chunk){
+    body += chunk;
+  })
+  response.on('end', function(){
+    if (response.statusCode === 200) {
+      try {
+        var profile = JSON.parse(body);
+        printMessage(profile.name, profile.badges.length, profile.points.JavaScript)
+      } catch(error){
+        printError(error);
+      }
+    } else {
+      printError({message: 'There was an error getting profile for ' + username + '.'})
+    }
+  })
+}); //end http.GET request
 
-server.listen(3000);
+request.on('error', printError);
